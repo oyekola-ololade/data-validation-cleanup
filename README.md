@@ -35,8 +35,18 @@ Validates email, phone, and date fields row-by-row and exports only clean, norma
 
 ## Architecture
 
-Open the [visual project page](./index.html#architecture) for the flow derived from the sanitized export.
+The diagram below represents the sanitized template flow. External services, credentials, and environment-specific identifiers must be configured before execution.
 
+```mermaid
+flowchart TD
+    A["CSV upload webhook"] --> B["Parse rows"]
+    B --> C{"Email, phone, and date valid?"}
+    C -->|Yes| D["Normalize casing and name"]
+    D --> E["Export clean row to CRM"]
+    C -->|No| F["Record row-level errors"]
+    F --> G["Export error report"]
+    G --> H["Manual review"]
+```
 
 ## Workflow
 
