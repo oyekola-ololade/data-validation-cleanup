@@ -1,0 +1,402 @@
+{
+  "name": "T25_Data_Validation_Cleanup",
+  "nodes": [
+    {
+      "id": "90ad6211-fb52-4096-8b79-b1cec1e791af",
+      "name": "Note_6763f3a7",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        50,
+        50
+      ],
+      "parameters": {
+        "content": "Created by Oyekola Ololade\nhttps://www.linkedin.com/in/ololade-oyekola-5b1797397/\nn8n Template Library - Gumroad",
+        "width": 300,
+        "height": 100,
+        "color": 4
+      }
+    },
+    {
+      "id": "442e30ba-a511-4018-903c-d604b021c5d3",
+      "name": "CSV Upload Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "9cfc37fc-e692-4e9c-9ebd-c384bd9f7a30",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "data-validation",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "959cb097-071d-49f2-bce6-e7501f735af9",
+      "name": "Parse CSV",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        450,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4c0cd66d-330c-4355-bf4c-535d6f09f68c",
+              "name": "rows",
+              "value": "={{ $json.body.rows }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "f1ec9bfd-cbef-490f-a5df-a07fbaa8352e",
+      "name": "Validate Row",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        650,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a8b6d3be-33f5-4027-9fb7-f4b2c981c477",
+              "name": "email_valid",
+              "value": "={{ /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test($json.rows[0].email) }}",
+              "type": "string"
+            },
+            {
+              "id": "b4e90974-6e95-495d-99d1-4108ef245f36",
+              "name": "phone_valid",
+              "value": "={{ /^\\d{10,15}$/.test($json.rows[0].phone.replace(/\\D/g,'')) }}",
+              "type": "string"
+            },
+            {
+              "id": "3032ae66-f891-48c4-bf1c-db93db0fbf70",
+              "name": "date_valid",
+              "value": "={{ !isNaN(new Date($json.rows[0].date)) }}",
+              "type": "string"
+            },
+            {
+              "id": "7dbd888f-c50b-43ce-9b44-85ce849aad5b",
+              "name": "row_data",
+              "value": "={{ JSON.stringify($json.rows[0]) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "6f6b70db-e612-4993-8520-04977789d390",
+      "name": "Row Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        850,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "4a8c809e-ca85-4bcc-8d49-868170bbe671",
+              "leftValue": "={{ $json.email_valid && $json.phone_valid && $json.date_valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "360ec99b-6d59-47d9-8df1-d26faf3b0d57",
+      "name": "Clean Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1050,
+        200
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "690113bb-b35a-44c6-a092-c0877be87151",
+              "name": "email",
+              "value": "={{ $json.rows[0].email.toLowerCase().trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "07f0f97d-4ab5-46b6-8df2-48bc73c50c1b",
+              "name": "phone",
+              "value": "={{ $json.rows[0].phone.replace(/\\D/g,'') }}",
+              "type": "string"
+            },
+            {
+              "id": "83829552-5c51-4cef-a93b-4f5e09de0b91",
+              "name": "name",
+              "value": "={{ $json.rows[0].name.trim().replace(/\b\\w/g, c => c.toUpperCase()) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "187a112c-2f21-47e9-aa51-b35e03fbd511",
+      "name": "Export Clean Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1250,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "YOUR_CRM_API_URL/contacts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_CRM_TOKEN"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "email",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "phone",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "name",
+              "value": "={{ $json.name }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ed2bbd73-b440-4f32-95aa-1b4b7cde6752",
+      "name": "Log Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1050,
+        400
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7414da04-76c2-4981-8987-1295d81be3de",
+              "name": "error_row",
+              "value": "={{ $json.row_data }}",
+              "type": "string"
+            },
+            {
+              "id": "2fe3c8c8-4559-4c50-8663-5c96dd83bb5f",
+              "name": "errors",
+              "value": "=\"Email: \" + $json.email_valid + \" | Phone: \" + $json.phone_valid + \" | Date: \" + $json.date_valid",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7398ce1c-8cbd-4506-9d78-8d6dbb1a1559",
+      "name": "Export Error Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1250,
+        400
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "YOUR_CRM_API_URL/errors",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_CRM_TOKEN"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "row",
+              "value": "={{ $json.error_row }}"
+            },
+            {
+              "name": "errors",
+              "value": "={{ $json.errors }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "d446ddab-df88-4eee-af55-65adef17c4ba",
+      "name": "End",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1450,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "CSV Upload Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse CSV": {
+      "main": [
+        [
+          {
+            "node": "Validate Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Row": {
+      "main": [
+        [
+          {
+            "node": "Row Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Row Valid?": {
+      "main": [
+        [
+          {
+            "node": "Clean Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Data": {
+      "main": [
+        [
+          {
+            "node": "Export Clean Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Export Clean Data": {
+      "main": [
+        [
+          {
+            "node": "End",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Error": {
+      "main": [
+        [
+          {
+            "node": "Export Error Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Export Error Report": {
+      "main": [
+        [
+          {
+            "node": "End",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    "Gumroad",
+    "Production",
+    "Template",
+    "Oyekola Ololade"
+  ],
+  "pinData": {},
+  "staticData": null
+}
